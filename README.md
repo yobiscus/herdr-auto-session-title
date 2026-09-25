@@ -16,28 +16,31 @@ The plugin runs after `pane.agent_detected`, useful
    name. Otherwise, reads the first usable user message from the local session
    JSONL and runs an isolated, ephemeral `codex exec` turn to generate a title
    of at most 36 characters.
-3. Reports the resolved title to Herdr with pane display metadata and renames the
-   containing tab.
+3. Reports the resolved title to Herdr as both the pane title and displayed
+   agent name, then renames the containing tab.
 4. For Codex panes, reads the native thread through `codex app-server` and sets
    an empty or plugin-owned name with `thread/name/set`.
-5. When Codex exits, clears the plugin-owned pane title and restores the tab's
-   numeric label if the tab is still named by this plugin.
+5. When Codex exits, clears the plugin-owned pane title and displayed agent
+   name, then restores the tab's numeric label if the tab is still named by this
+   plugin.
 
 The first request determines a newly generated automatic title. Follow-up
 messages do not continually rename the session. Resuming or switching to a
 thread that already has a native Codex name adopts that name instead. Use the
 refresh action when you explicitly want to regenerate the current title.
 
-| Agent | Herdr pane title | Native agent title |
-| --- | --- | --- |
-| Codex | Yes | Yes, via `thread/name/set` |
-| Claude Code | Yes | No |
-| Other agents | Ignored | No |
+| Agent | Herdr pane title | Herdr displayed agent name | Native agent title |
+| --- | --- | --- | --- |
+| Codex | Yes | Yes | Yes, via `thread/name/set` |
+| Claude Code | Yes | Yes | No |
+| Other agents | Ignored | No | No |
 
 Manual titles win, subject to the non-atomic tab rename limitation documented
 under Privacy and safety. The plugin only replaces a Herdr pane title, tab
 label, or Codex title when it is empty, still has its numeric default, or still
-equals the last title written by this plugin. If a Codex thread already has a
+equals the last title written by this plugin. The displayed agent name follows
+the plugin's generated title and is cleared when the agent session exits. If a
+Codex thread already has a
 native title, that title is adopted as the Herdr title so the surfaces remain
 synchronized without claiming ownership of the native title. On Codex exit,
 cleanup uses the same ownership check and preserves a manual tab label it
@@ -60,7 +63,7 @@ Codex synchronization on a later event.
 ## Install
 
 ```sh
-herdr plugin install zhangzujian/herdr-auto-session-title
+herdr plugin install yobiscus/herdr-auto-session-title
 ```
 
 For local development:
@@ -80,7 +83,7 @@ default model.
 Invoke the action while targeting a pane:
 
 ```sh
-herdr plugin action invoke zhangzujian.auto-session-title.refresh
+herdr plugin action invoke yobiscus.auto-session-title.refresh
 ```
 
 The action is also available through Herdr's plugin action UI.

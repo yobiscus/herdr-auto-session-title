@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zhangzujian/herdr-auto-session-title.git"
+    "url": "git+https://github.com/yobiscus/herdr-auto-session-title.git"
   },
   "engines": {
     "node": ">=20"

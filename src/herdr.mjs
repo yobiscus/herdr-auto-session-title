@@ -46,7 +46,7 @@ export async function writePaneTitle({
   if (agent) {
     args.push("--agent", agent);
   }
-  args.push("--title", title);
+  args.push("--title", title, "--display-agent", title);
   await runHerdrJson({ args, env, herdrBin, timeoutMs });
   await onPaneTitleWritten?.({ title });
   if (tabId) {
@@ -91,7 +91,15 @@ export async function clearPaneTitle({
   timeoutMs = 10_000,
 }) {
   await runHerdrJson({
-    args: ["pane", "report-metadata", paneId, "--source", source, "--clear-title"],
+    args: [
+      "pane",
+      "report-metadata",
+      paneId,
+      "--source",
+      source,
+      "--clear-title",
+      "--clear-display-agent",
+    ],
     env,
     herdrBin,
     timeoutMs,
