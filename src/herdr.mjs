@@ -79,6 +79,21 @@ export async function writePaneTitle({
   return { status: "updated", title };
 }
 
+export async function writePaneDisplayAgent({
+  agent = null,
+  env = process.env,
+  herdrBin = env.HERDR_BIN_PATH || "herdr",
+  paneId,
+  source = "plugin:auto-session-title",
+  timeoutMs = 10_000,
+  title,
+}) {
+  const args = ["pane", "report-metadata", paneId, "--source", source];
+  if (agent) args.push("--agent", agent);
+  args.push("--display-agent", title);
+  await runHerdrJson({ args, env, herdrBin, timeoutMs });
+}
+
 export async function clearPaneTitle({
   env = process.env,
   herdrBin = env.HERDR_BIN_PATH || "herdr",

@@ -7,7 +7,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { readCodexThreadTitle, syncCodexThreadTitle } from "./codex-rpc.mjs";
 import { generateTitle } from "./generator.mjs";
-import { clearPaneTitle, readPane, writePaneTitle } from "./herdr.mjs";
+import {
+  clearPaneTitle,
+  readPane,
+  writePaneDisplayAgent,
+  writePaneTitle,
+} from "./herdr.mjs";
 import { extractSessionPrompt, locateSessionFile } from "./session.mjs";
 import {
   LockBusyError,
@@ -27,6 +32,7 @@ const defaultDependencies = {
   readPane,
   sleep,
   syncCodexThreadTitle,
+  writePaneDisplayAgent,
   writePaneTitle,
 };
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -104,6 +110,25 @@ export async function runAutoTitle({
       }
 
       const currentPaneTitle = pane.title?.trim() || null;
+      if (currentPaneTitle) {
+        await deps.writePaneDisplayAgent({
+          agent,
+          env,
+          herdrBin,
+          paneId,
+          title: currentPaneTitle,
+        });
+        const displayState = {
+          ...previous,
+          sessionKey: paneSessionKey(pane),
+          herdrPaneTitle: confirmedPaneTitle(previous) || currentPaneTitle,
+          herdrTabTitle: confirmedTabTitle(previous) ?? "",
+          herdrTitle: previous?.herdrTitle || currentPaneTitle,
+        };
+        await writePaneState({ paneId, state: displayState, stateDir });
+        previous = displayState;
+      }
+
       const tabLabel = pane.tab?.label?.trim() || null;
       const defaultTabLabel =
         tabLabel && pane.tab?.number != null && tabLabel === String(pane.tab.number);
@@ -293,6 +318,13 @@ async function reconcileExistingSession({
   }
 
   let herdrUpdated = false;
+  await deps.writePaneDisplayAgent({
+    agent,
+    env,
+    herdrBin,
+    paneId,
+    title: target,
+  });
   if (!herdrPresentationMatches(pane, target)) {
     const stagedState = {
       ...previous,
