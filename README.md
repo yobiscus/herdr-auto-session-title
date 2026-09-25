@@ -78,6 +78,27 @@ No configuration file is required. Herdr supplies its own executable path and
 plugin state directory; title generation uses the authenticated Codex CLI's
 default model.
 
+## Configuration
+
+The optional `config.json` file lives in the directory printed by:
+
+```sh
+herdr plugin config-dir yobiscus.auto-session-title
+```
+
+Set `rename_tab` to `false` to keep automatic titles out of Herdr's tab labels.
+Pane titles and the displayed sidebar agent name continue to update. The
+default is `true`.
+
+```json
+{
+  "rename_tab": false
+}
+```
+
+The plugin reads this file on each event, so changes apply without restarting
+Herdr.
+
 ## Manual refresh
 
 Invoke the action while targeting a pane:

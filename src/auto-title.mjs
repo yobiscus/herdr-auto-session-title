@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { readCodexThreadTitle, syncCodexThreadTitle } from "./codex-rpc.mjs";
+import { loadPluginConfig } from "./config.mjs";
 import { generateTitle } from "./generator.mjs";
 import {
   clearPaneTitle,
@@ -63,6 +64,7 @@ export async function runAutoTitle({
   const paneId = env.HERDR_PANE_ID || event?.data?.pane_id;
   if (!paneId) return { status: "ignored" };
   const deps = { ...defaultDependencies, ...dependencyOverrides };
+  const { renameTab } = await loadPluginConfig({ env });
 
   try {
     return await withPaneLock({ paneId, stateDir }, async () => {
@@ -86,6 +88,7 @@ export async function runAutoTitle({
           pane,
           paneId,
           previous,
+          renameTab,
           stateDir,
         });
         previous = null;
@@ -161,6 +164,7 @@ export async function runAutoTitle({
           pane,
           paneId,
           previous,
+          renameTab,
           stateDir,
           threadId: session.value,
         });
@@ -256,7 +260,7 @@ export async function runAutoTitle({
         },
         paneId,
         previousPluginTitle: stagedState.herdrTabTitle,
-        tabId: pane.tab_id,
+        tabId: renameTab ? pane.tab_id : null,
         title: resolvedTitle,
       });
       if (herdrResult?.status === "preserved") {
@@ -266,7 +270,8 @@ export async function runAutoTitle({
       const completedState = {
         ...stagedState,
         herdrPaneTitle: resolvedTitle,
-        herdrTabTitle: pane.tab_id ? resolvedTitle : stagedState.herdrTabTitle,
+        herdrTabTitle:
+          renameTab && pane.tab_id ? resolvedTitle : stagedState.herdrTabTitle,
         herdrTitle: resolvedTitle,
       };
       delete completedState.pendingHerdrTitle;
@@ -292,6 +297,7 @@ async function reconcileExistingSession({
   pane,
   paneId,
   previous,
+  renameTab,
   stateDir,
   threadId,
 }) {
@@ -325,7 +331,7 @@ async function reconcileExistingSession({
     paneId,
     title: target,
   });
-  if (!herdrPresentationMatches(pane, target)) {
+  if (!herdrPresentationMatches(pane, target, renameTab)) {
     const stagedState = {
       ...previous,
       codexOwnedTitle,
@@ -353,7 +359,7 @@ async function reconcileExistingSession({
       },
       paneId,
       previousPluginTitle: stagedState.herdrTabTitle,
-      tabId: pane.tab_id,
+      tabId: renameTab ? pane.tab_id : null,
       title: target,
     });
     if (reconciled?.status === "preserved") {
@@ -368,7 +374,8 @@ async function reconcileExistingSession({
     codexOwnedTitle,
     codexTitle,
     herdrPaneTitle: target,
-    herdrTabTitle: pane.tab_id ? target : confirmedTabTitle(previous),
+    herdrTabTitle:
+      renameTab && pane.tab_id ? target : confirmedTabTitle(previous),
     herdrTitle: target,
   };
   delete reconciledState.pendingHerdrTitle;
@@ -385,6 +392,7 @@ async function clearReleasedPresentation({
   pane,
   paneId,
   previous,
+  renameTab,
   stateDir,
 }) {
   if (!previous) return { status: "unchanged" };
@@ -407,7 +415,7 @@ async function clearReleasedPresentation({
     },
     paneId,
     previousPluginTitle: stagedState.releaseTabTitle,
-    tabId: pane.tab_id,
+    tabId: renameTab ? pane.tab_id : null,
   });
   await removePaneState({ paneId, stateDir });
   return { status: "cleared" };
@@ -485,10 +493,10 @@ function hash(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function herdrPresentationMatches(pane, title) {
+function herdrPresentationMatches(pane, title, renameTab = true) {
   return (
     pane.title?.trim() === title &&
-    (!pane.tab || pane.tab.label?.trim() === title)
+    (!renameTab || !pane.tab || pane.tab.label?.trim() === title)
   );
 }
 
